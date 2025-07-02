@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VSCode settings
+.vscode/
+
+# Environment files
+.env
+.venv/
+.conda/
+*.env
+
+# Installer logs
+pip-log.txt
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+*.egg-info/
+.eggs/
+
+# Python virtual environment
+*.swp
+*.bak
+*.tmp
+*.log
+
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints
+
+# AutoGen + FastAPI specific
+*.pptx
+__init__.pyc
+*.sqlite3
+*.db

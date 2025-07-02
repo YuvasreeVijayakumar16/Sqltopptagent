@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: sql-ppt-api
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port 8000
+    envVars: # This section defines environment variables that will be available to your service at runtime.
+      - key: OPENAI_API_KEY # The name of the environment variable. Your Python code will access this using `os.environ.get("OPENAI_API_KEY")`.
+        value: sk-proj-6LMEydIrkDWXPWYNgLbqT3BlbkFJsEbRSsrjGUcglSq00vrNg # The actual value of the environment variable.
+      - key: AUTOGEN_USE_DOCKER # Another environment variable.
+        value: "False" # Its value, as a string.

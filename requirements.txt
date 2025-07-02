@@ -1,0 +1,9 @@
+openai
+pandas
+pyodbc
+python-pptx
+autogen
+python-dotenv
+fastapi
+uvicorn
+

@@ -1,0 +1,16 @@
+{
+  "provider": "autogen_agentchat.teams.RoundRobinGroupChat",
+  "component_type": "team",
+  "version": 1,
+  "label": "sql_ppt_team",
+  "description": "SQL-to-PPT Assistant Agent",
+  "config": {
+    "participants": [
+      {
+        "id": "sql_agent",
+        "provider": "autogen_sql_ppt_project.agents.sql_agent.sql_agent",
+        "config": {}
+      }
+    ]
+  }
+}
