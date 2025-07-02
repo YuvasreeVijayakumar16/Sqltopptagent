@@ -25,11 +25,12 @@ font_size = Pt(18)
 
 def get_connection():
     return pyodbc.connect(
-        f"Driver={{ODBC Driver 18 for SQL Server}};"
+        f"Driver={{ODBC Driver 17 for SQL Server}};"
         f"Server={os.environ.get('SQL_SERVER')};"
         f"Database={os.environ.get('SQL_DATABASE')};"
         f"UID={os.environ.get('SQL_UID')};"
         f"PWD={os.environ.get('SQL_PASSWORD')};"
+        "Encrypt=yes;TrustServerCertificate=yes;"
     )
 # === GPT HELPERS ===
 def generate_summary_from_dataframe(df: pd.DataFrame) -> str:

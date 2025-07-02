@@ -16,7 +16,9 @@ sql_agent = ConversableAgent(
     name="sql_agent",
     llm_config=llm_config,
     system_message="Generate SQL SELECT queries based on schema + question. Respond ONLY with execute_sql().",
-    is_termination_msg=lambda msg: "tool_responses" in msg
+    is_termination_msg=lambda msg: "tool_responses" in msg,
+     human_input_mode="NEVER",  # 👈 ADD THIS
+    max_consecutive_auto_reply=5 
 )
 
 user = UserProxyAgent(
