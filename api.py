@@ -19,8 +19,8 @@ app = FastAPI()
 
 # === ✅ CORS Setup ===
 origins = [
-    "https://supplysense-test.azurewebsites.net",  # ✅ Azure UI
-    "http://localhost:3000"                        # ✅ Local dev
+    "https://supplysense-test.azurewebsites.net",  # Azure UI
+    "http://localhost:8080"                        # Local dev
 ]
 
 app.add_middleware(
@@ -51,12 +51,10 @@ async def generate_ppt(request: Request):
                 "error": "Missing one of: 'question', 'getencryptfilename', 'userprofilename'"
             })
 
-        # === Extract Schema ===
         schema = extract_schema()
         if schema.startswith("❌"):
             return JSONResponse(status_code=500, content={"error": schema})
 
-        # === Generate SQL with GPT ===
         system_prompt = f"""You are given the schema of a SQL Server database:\n{schema}\n\nGenerate a SQL SELECT query to answer:\n{question}"""
         sql_agent.register_for_llm(name="execute_sql")(execute_sql)
 
@@ -71,34 +69,30 @@ async def generate_ppt(request: Request):
         final_message = chat_result.chat_history[-1].get("content", "")
         print("Final message:\n", final_message)
 
-        # === Extract Result and PPT Path ===
+        # === Extract Result + PPT Path ===
         match = re.search(r"'result':\s*\[(.*?)\],\s*'ppt':\s*'([^']+\.pptx)'", final_message, re.DOTALL)
         if not match:
             return JSONResponse(status_code=500, content={"error": "No PPT path or result returned.", "raw": final_message})
 
         raw_output = "{'result': [" + match.group(1) + f"], 'ppt': '{match.group(2)}'}}"
 
+        # === Fix datetime.date(...) in the output ===
+        cleaned_output = re.sub(r"datetime\.date\((\d+),\s*(\d+),\s*(\d+)\)", r"'\1-\2-\3'", raw_output)
+
         try:
-            parsed = ast.literal_eval(raw_output)
-        except Exception:
-            try:
-                cleaned = raw_output.replace("'", '"')
-                cleaned = re.sub(r'(?<!")(\b\w+\b)(?=\s*:)', r'"\1"', cleaned)
-                parsed = json.loads(cleaned)
-            except Exception as json_err:
-                return JSONResponse(status_code=500, content={
-                    "error": f"Failed to parse GPT output: {str(json_err)}",
-                    "raw_output": raw_output
-                })
+            parsed = ast.literal_eval(cleaned_output)
+        except Exception as eval_err:
+            return JSONResponse(status_code=500, content={
+                "error": f"Failed to parse GPT output: {str(eval_err)}",
+                "raw_output": cleaned_output
+            })
 
         ppt_path = parsed["ppt"]
         if not ppt_path or not os.path.exists(ppt_path):
             return JSONResponse(status_code=500, content={"error": "PPT file not found.", "ppt_path": ppt_path})
 
-        # === Call External APIs ===
+        # === Step 1: Save Metadata ===
         api_root = "https://supplysenseaiapi-aadngxggarc0g6hz.z01.azurefd.net/api/iSCM/"
-
-        # Step 1: Metadata Save
         save_url = f"{api_root}PostSavePPTDetailsV2?FileName={getencryptfilename}&CreatedBy={userprofilename}&Date={get_current_date()}"
         save_response = requests.post(save_url)
 
@@ -109,7 +103,7 @@ async def generate_ppt(request: Request):
                 "save_response": save_response.text
             })
 
-        # Step 2: Upload File with Content
+        # === Step 2: Upload PPT File ===
         filtered_obj = {
             "slide": 1,
             "title": "Auto-generated Slide",
@@ -122,7 +116,6 @@ async def generate_ppt(request: Request):
                 "file": (getencryptfilename, ppt_file, "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
                 "content": (None, json.dumps(formatdata), "application/json")
             }
-
             upload_url = f"{api_root}UpdatePptFileV2?FileName={getencryptfilename}&CreatedBy={userprofilename}"
             upload_response = requests.post(upload_url, files=files)
 
