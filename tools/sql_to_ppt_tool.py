@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import re
 import pyodbc
@@ -8,7 +11,6 @@ from pptx.util import Inches, Pt
 from pptx.enum.text import PP_ALIGN
 from openai import OpenAI
 from typing import Tuple  # add this import if not already present
-from dotenv import load_dotenv
 
 
 # === ENVIRONMENT ===
