@@ -1,16 +1,6 @@
-
-import os
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-
-# Load env before importing sql_agent
-load_dotenv()
-
-# Debug prints
-print(f"DEBUG (api.py): OPENAI_API_KEY loaded? {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}")
-
-# Import the configured agent
-from agents.sql_agent import sql_agent  
+from agents.sql_agent import sql_agent
+from autogen import UserProxyAgent
 
 app = FastAPI()
 
@@ -19,14 +9,21 @@ def ping():
     return {"message": "SQL-to-PPT agent running"}
 
 @app.post("/query")
-async def query_agent(request: Request):
+async def ask_sql_question(request: Request):
     data = await request.json()
     question = data.get("question", "")
     if not question:
-        return {"error": "Missing 'question' in request body"}
-    
-    try:
-        response = sql_agent.initiate_chat(question)
-        return {"response": response}
-    except Exception as e:
-        return {"error": str(e)}
+        return {"error": "No question provided."}
+
+    # Optional: Extract schema if your sql_agent needs it dynamically
+    system_message = f"You are given a SQL database. Generate a SQL SELECT query to answer:\n{question}"
+
+    user = UserProxyAgent(
+        name="user",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=5,
+        function_map={"execute_sql": sql_agent._tool_name_map["execute_sql"]},
+    )
+
+    chat_result = user.initiate_chat(sql_agent, message=system_message)
+    return {"status": "success", "response": chat_result}
