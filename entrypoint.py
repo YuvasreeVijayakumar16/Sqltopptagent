@@ -1,7 +1,8 @@
 
 import os
-import pyodbc  
-from autogen_sql_ppt_project.tools.sql_to_ppt_tool import execute_sql
+import pyodbc
+from tools.sql_to_ppt_tool import execute_sql
+
 print(f"execute_sql imported: {execute_sql}") # This should print something like <function execute_sql at 0x...>
 from dotenv import load_dotenv # Import load_dotenv
 
