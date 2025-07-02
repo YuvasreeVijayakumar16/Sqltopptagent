@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import os
 import re
@@ -12,17 +13,36 @@ from entrypoint import extract_schema
 from tools.sql_to_ppt_tool import execute_sql
 from autogen import UserProxyAgent
 
+# === Load environment variables ===
 load_dotenv()
 
+# === FastAPI app setup ===
 app = FastAPI()
 
+# ✅ CORS MIDDLEWARE (must be before routes)
+origins = [
+    "https://supplysense-test.azurewebsites.net",  # ✅ Your deployed frontend
+    "http://localhost:3000"  # ✅ Local dev (optional)
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# === Helper: Date ===
+def get_current_date():
+    return datetime.now().strftime("%Y-%m-%d")
+
+# === Health Check ===
 @app.get("/")
 def ping():
     return {"message": "SQL-to-PPT agent is running"}
 
-def get_current_date():
-    return datetime.now().strftime("%Y-%m-%d")
-
+# === Main Endpoint ===
 @app.post("/generate-ppt")
 async def generate_ppt(request: Request):
     try:
@@ -40,11 +60,11 @@ async def generate_ppt(request: Request):
         if schema.startswith("❌"):
             return JSONResponse(status_code=500, content={"error": schema})
 
-        # Prompt LLM with system message to generate SQL
+        # === AutoGen prompt setup ===
         system_prompt = f"""You are given the schema of a SQL Server database:\n{schema}\n\nGenerate a SQL SELECT query to answer:\n{question}"""
 
-        # Register SQL tool with agent
         sql_agent.register_for_llm(name="execute_sql")(execute_sql)
+
         user = UserProxyAgent(
             name="user",
             human_input_mode="NEVER",
@@ -52,7 +72,6 @@ async def generate_ppt(request: Request):
             function_map={"execute_sql": execute_sql}
         )
 
-        # Run the agent
         chat_result = user.initiate_chat(sql_agent, message=system_prompt)
         final_message = chat_result.chat_history[-1].get("content", "")
         print("Final message:\n", final_message)
@@ -69,13 +88,10 @@ async def generate_ppt(request: Request):
         if not ppt_path or not os.path.exists(ppt_path):
             return JSONResponse(status_code=500, content={"error": "PPT file not found."})
 
+        # === Step 1: Save PPT metadata ===
         api_root = "https://supplysenseaiapi-aadngxggarc0g6hz.z01.azurefd.net/api/iSCM/"
+        save_url = f"{api_root}PostSavePPTDetailsV2?FileName={getencryptfilename}&CreatedBy={userprofilename}&Date={get_current_date()}"
 
-        # === Step 1: Save PPT Metadata ===
-        save_url = (
-            f"{api_root}PostSavePPTDetailsV2"
-            f"?FileName={getencryptfilename}&CreatedBy={userprofilename}&Date={get_current_date()}"
-        )
         save_response = requests.post(save_url)
         if save_response.status_code != 200:
             return JSONResponse(status_code=500, content={
@@ -84,7 +100,7 @@ async def generate_ppt(request: Request):
                 "save_response": save_response.text
             })
 
-        # === Step 2: Upload PPT File ===
+        # === Step 2: Upload PPT file ===
         filtered_obj = {
             "slide": 1,
             "title": "Auto-generated Slide",
@@ -97,10 +113,7 @@ async def generate_ppt(request: Request):
                 "file": (getencryptfilename, ppt_file, "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
                 "content": (None, json.dumps(formatdata), "application/json")
             }
-            upload_url = (
-                f"{api_root}UpdatePptFileV2"
-                f"?FileName={getencryptfilename}&CreatedBy={userprofilename}"
-            )
+            upload_url = f"{api_root}UpdatePptFileV2?FileName={getencryptfilename}&CreatedBy={userprofilename}"
             upload_response = requests.post(upload_url, files=files)
 
         return {
