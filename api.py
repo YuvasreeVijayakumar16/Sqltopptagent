@@ -1,19 +1,32 @@
+
 import os
 from dotenv import load_dotenv
+from fastapi import FastAPI, Request
 
-# --- IMPORTANT: load_dotenv() MUST be called BEFORE any imports
-# that might depend on environment variables (like your agents or tools).
+# Load env before importing sql_agent
 load_dotenv()
 
-# --- Optional: Add debugging prints to confirm load_dotenv() worked ---
+# Debug prints
 print(f"DEBUG (api.py): OPENAI_API_KEY loaded? {'Yes' if os.environ.get('OPENAI_API_KEY') else 'No'}")
-print(f"DEBUG (api.py): OPENAI_API_KEY value (first 5 chars): {os.environ.get('OPENAI_API_KEY', '')[:5]}...")
-# --- End Optional Debugging ---
 
-from fastapi import FastAPI
-from agents.sql_agent import sql_agent 
+# Import the configured agent
+from agents.sql_agent import sql_agent  
+
 app = FastAPI()
 
 @app.get("/")
 def ping():
-     return {"message": "SQL-to-PPT agent running"}
+    return {"message": "SQL-to-PPT agent running"}
+
+@app.post("/query")
+async def query_agent(request: Request):
+    data = await request.json()
+    question = data.get("question", "")
+    if not question:
+        return {"error": "Missing 'question' in request body"}
+    
+    try:
+        response = sql_agent.initiate_chat(question)
+        return {"response": response}
+    except Exception as e:
+        return {"error": str(e)}
