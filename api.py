@@ -55,7 +55,17 @@ async def generate_ppt(request: Request):
         if schema.startswith("❌"):
             return JSONResponse(status_code=500, content={"error": schema})
 
-        system_prompt = f"""You are given the schema of a SQL Server database:\n{schema}\n\nGenerate a SQL SELECT query to answer:\n{question}"""
+        system_prompt = f"""
+You are a SQL expert working with the following SQL Server schema:
+{schema}
+
+Only use tables and columns that exist in this schema. 
+Do not invent table or column names. Always validate joins based on shared keys.
+Avoid using tables like 'MaterialDetails' or 'MaterialTransactions' unless they appear in the schema.
+
+Now, generate a well-structured SQL SELECT query to answer:
+\"{question}\"
+"""
         sql_agent.register_for_llm(name="execute_sql")(execute_sql)
 
         user = UserProxyAgent(
@@ -130,3 +140,4 @@ async def generate_ppt(request: Request):
         import traceback
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": str(e)})
+

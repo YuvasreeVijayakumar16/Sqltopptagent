@@ -1,9 +1,9 @@
 import os
 from autogen import ConversableAgent, UserProxyAgent
 from tools.sql_to_ppt_tool import execute_sql # type: ignore
-from dotenv import load_dotenv # <--- ADD THIS IMPORT
+from dotenv import load_dotenv
 
-llm_config = {
+llm_config = { 
     "model": "gpt-4o",
     "api_key": os.environ.get("OPENAI_API_KEY"),
     "temperature": 0.3,
@@ -17,7 +17,7 @@ sql_agent = ConversableAgent(
     llm_config=llm_config,
     system_message="Generate SQL SELECT queries based on schema + question. Respond ONLY with execute_sql().",
     is_termination_msg=lambda msg: "tool_responses" in msg,
-     human_input_mode="NEVER",  # 👈 ADD THIS
+     human_input_mode="NEVER",
     max_consecutive_auto_reply=5 
 )
 

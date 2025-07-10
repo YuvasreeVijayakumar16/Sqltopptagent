@@ -1,12 +1,9 @@
 services:
   - type: web
     name: sql-ppt-api
-    env: python
+    env: docker  # 👈 Switch from "python" to "docker"
     plan: free
-    buildCommand: ./build.sh
-   # buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api:app --host 0.0.0.0 --port 8000
-    envVars: # This section defines environment variables that will be available to your service at runtime.
+    envVars:
       - key: OPENAI_API_KEY
         value: sk-proj-6LMEydIrkDWXPWYNgLbqT3BlbkFJsEbRSsrjGUcglSq00vrNg
       - key: AUTOGEN_USE_DOCKER
